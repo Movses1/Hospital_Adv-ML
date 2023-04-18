@@ -16,6 +16,7 @@ class Preprocessor:
 
         self.orig_means = None  # mean values for each column in train data
         self.orig_medians = None  # median values for each column in train data
+        self.orig_min = None
         self.gender_heights = np.array([160.5, 176])
 
         self.unique_tests = []  # unique medical test names that have extensions
@@ -33,6 +34,7 @@ class Preprocessor:
             self.df_orig.drop('In-hospital_death', axis=1, inplace=True)
         self.orig_means = self.df_orig.mean(axis=0)
         self.orig_medians = self.df_orig.median(axis=0)
+        self.orig_mins = self.df_orig.min(axis=0)
 
         # creating _isna columns for tests with extensions
         test_name = np.array([i[:i.find('_')] for i in df_new.columns if '_' in i])
@@ -42,22 +44,22 @@ class Preprocessor:
         has_nans = df_new[self.unique_tests_singular].isna().any()
         self.unique_tests_singular = self.unique_tests_singular[has_nans]
 
-        self.df_orig_tr = self.transform(self.df_orig)
-        self.df_orig_tr = self.scaler.fit_transform(self.df_orig_tr)
+        self.df_orig_tr = self.transform(self.df_orig, fitting=True)
         return self.df_orig_tr
 
-    def transform(self, df_new):
+    def transform(self, df_new, fitting=False):
         """
-        :param df_new, save_isnas:
-        save_isnas - weather or not to save the _isna column names
+        :param df_new: dataframe we are transforming
+        :param fitting: weather or not we want to fit the scaler
         transforms the original dataframe by adding new columns and handling nan values
         :return: df_transformed
         """
-        gender_nans=df_new.Gender.isna()
+        gender_nans = df_new.Gender.isna()
         df_new.loc[gender_nans, 'Gender'] = np.random.randint(2, size=gender_nans.sum())
         df_transformed = df_new.copy()
         height_nans = df_transformed.Height.isna()
-        df_transformed.loc[height_nans, 'Height'] = self.gender_heights[df_transformed[height_nans].Gender.values.astype('int32')]
+        df_transformed.loc[height_nans, 'Height'] = self.gender_heights[
+            df_transformed[height_nans].Gender.values.astype('int32')]
         df_transformed['Height_isna'] = height_nans
 
         df_temp = df_new[self.unique_tests + '_first'].isna()
@@ -70,4 +72,7 @@ class Preprocessor:
 
         # you choose how you fill the nans
         # df_transformed.fillna(self.orig_means, inplace=True)
-        return df_transformed
+
+        if fitting:
+            self.scaler.fit(df_transformed)
+        return self.scaler.transform(df_transformed)
