@@ -5,7 +5,7 @@
 
 import argparse
 import pickle
-from preprocessor import Preprocessor as prpr
+from preprocessor import Preprocessor
 from model import Model
 import numpy as np
 import pandas as pd
@@ -21,9 +21,9 @@ class Pipeline:
         self.path = args.data_path
         self.inference = args.inference
         self.model = Model()
-        self.transformer = prpr()
+        self.transformer = Preprocessor()
 
-    def run(self):
+    def run(self, test=False):
         """
         runs the pipeline fitting and saving the model
         or running it on test data
@@ -31,7 +31,7 @@ class Pipeline:
         :return: None
         """
         df = pd.read_csv(self.path)
-        if self.inference:
+        if self.inference or test:
             with open('stacking classifier.pkl', 'rb') as file:
                 self.model = pickle.load(file)
 
