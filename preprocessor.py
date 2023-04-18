@@ -26,8 +26,9 @@ class Preprocessor:
         """
         :param df_new:
         fits the scaler after performing the transformations
-        and saves means and medians of the original data
-        :return: df_new but transformed
+        saves means and medians etc. of the original data
+        this functions like a fit_transform basically
+        :return: df_new transformed
         """
         self.df_orig = df_new
         if 'In-hospital_death' in self.df_orig.columns:
