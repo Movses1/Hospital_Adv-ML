@@ -9,3 +9,5 @@ pandas==2.0.0
 scikit-learn==1.2.2
 
 python==3.10
+
+xgboost==1.7.5
