@@ -60,6 +60,8 @@ class Preprocessor:
         df_transformed.fillna(self.orig_means, inplace=True)
         # df_transformed.fillna(self.orig_mins - 1, inplace=True)
 
+        df_transformed = self.__add_diff_columns(df_transformed)
+
         if fitting:
             self.scaler.fit(df_transformed)
         return self.scaler.transform(df_transformed)
@@ -84,6 +86,17 @@ class Preprocessor:
         df_transformed = pd.concat([df_transformed, df_temp], axis=1)
 
         return df_transformed
+
+    def __add_diff_columns(self, df_new):
+        diff = df_new[self.unique_tests + '_last'] - df_new[self.unique_tests + '_first'].values
+        diff.columns = self.unique_tests + '_lf_diff'
+        df_transformed = pd.concat([df_new, diff], axis=1)
+
+        h_l = np.isin(self.unique_tests+'_highest', df_new.columns)
+        diff = df_new[self.unique_tests[h_l] + '_highest'] - df_new[self.unique_tests[h_l] + '_lowest'].values
+        diff.columns = self.unique_tests[h_l] + '_hl_diff'
+
+        return pd.concat([df_transformed, diff], axis=1)
 
     def __handle_heights(self, df_new):
         """
