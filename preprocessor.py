@@ -16,7 +16,7 @@ class Preprocessor:
 
         self.orig_means = None  # mean values for each column in train data
         self.orig_medians = None  # median values for each column in train data
-        self.orig_min = None
+        self.orig_mins = None
         self.gender_heights = np.array([160.5, 176])
 
         self.unique_tests = []  # unique medical test names that have extensions
@@ -58,10 +58,14 @@ class Preprocessor:
         gender_nans = df_new.Gender.isna()
         df_new.loc[gender_nans, 'Gender'] = np.random.randint(2, size=gender_nans.sum())
         df_transformed = df_new.copy()
+
+        df_transformed.loc[df_new.Height > 210, 'Height'] = np.nan
         height_nans = df_transformed.Height.isna()
         df_transformed.loc[height_nans, 'Height'] = self.gender_heights[
             df_transformed[height_nans].Gender.values.astype('int32')]
         df_transformed['Height_isna'] = height_nans
+        non_height_cols = self.unique_tests_singular != 'Height'
+        self.unique_tests_singular = self.unique_tests_singular[non_height_cols]
 
         df_temp = df_new[self.unique_tests + '_first'].isna()
         df_temp.columns = self.unique_tests + '_fl_isna'
@@ -72,7 +76,7 @@ class Preprocessor:
         df_transformed = pd.concat([df_transformed, df_temp], axis=1)
 
         # you choose how you fill the nans
-        # df_transformed.fillna(self.orig_means, inplace=True)
+        df_transformed.fillna(self.orig_mins - 1, inplace=True)
 
         if fitting:
             self.scaler.fit(df_transformed)
