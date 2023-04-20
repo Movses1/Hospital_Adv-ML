@@ -59,8 +59,11 @@ class Preprocessor:
         # you choose how you fill the nans
         df_transformed.fillna(self.orig_means, inplace=True)
         # df_transformed.fillna(self.orig_mins - 1, inplace=True)
+        # df_transformed.fillna(0, inplace=True)
+        df_transformed = self.__add_bmi(df_transformed)
 
         df_transformed = self.__add_diff_columns(df_transformed)
+        # df_transformed = self.__add_diff_columns_w_replacing(df_transformed)
 
         if fitting:
             self.scaler.fit(df_transformed)
@@ -84,7 +87,12 @@ class Preprocessor:
         df_temp = df_new[self.unique_tests_singular].isna()
         df_temp.columns = self.unique_tests_singular + '_isna'
         df_transformed = pd.concat([df_transformed, df_temp], axis=1)
+        return df_transformed
 
+    def __add_bmi(self, df_new):
+        df_transformed=df_new.copy()
+        df_transformed.loc[:, 'BMI'] = df_transformed.Weight / df_transformed.Height ** 2
+        df_transformed.loc[:, 'BMI_isna'] = df_transformed['Height_isna'] | df_transformed['Weight_isna']
         return df_transformed
 
     def __add_diff_columns(self, df_new):
@@ -92,10 +100,9 @@ class Preprocessor:
         diff.columns = self.unique_tests + '_lf_diff'
         df_transformed = pd.concat([df_new, diff], axis=1)
 
-        h_l = np.isin(self.unique_tests+'_highest', df_new.columns)
+        h_l = np.isin(self.unique_tests + '_highest', df_new.columns)
         diff = df_new[self.unique_tests[h_l] + '_highest'] - df_new[self.unique_tests[h_l] + '_lowest'].values
         diff.columns = self.unique_tests[h_l] + '_hl_diff'
-
         return pd.concat([df_transformed, diff], axis=1)
 
     def __handle_heights(self, df_new):
@@ -113,5 +120,4 @@ class Preprocessor:
 
         non_height_cols = self.unique_tests_singular != 'Height'
         self.unique_tests_singular = self.unique_tests_singular[non_height_cols]
-
         return df_transformed
