@@ -37,14 +37,14 @@ qda = QuadraticDiscriminantAnalysis()
 
 grid_search = GridSearchCV(qda, param_grid, cv=5)
 best_model = grid_search.fit(X_train, y_train)
-y_pred_g = grid_search.best_estimator_.predict(X_test)
+# y_pred_g = grid_search.best_estimator_.predict(X_test)
 
 
-threshold = 0.5
-y_pred_binary_g = [1 if pred >= threshold else 0 for pred in y_pred_g]
+# threshold = 0.5
+# y_pred_binary_g = [1 if pred >= threshold else 0 for pred in y_pred_g]
 
-print("roc_auc_score", roc_auc_score(y_test, y_pred_binary_g))
-print("Accuracy:", accuracy_score(y_test, y_pred_binary_g))
+# print("roc_auc_score", roc_auc_score(y_test, y_pred_binary_g))
+# print("Accuracy:", accuracy_score(y_test, y_pred_binary_g))
 
 joblib.dump(best_model, 'best_model_QDA.pkl')
 
