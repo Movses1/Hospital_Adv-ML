@@ -41,14 +41,14 @@ param_grid = {
 
 grid_search = GridSearchCV(rf, param_grid, cv=5)
 best_model = grid_search.fit(X_train, y_train)
-y_pred = grid_search.best_estimator_.predict(X_test)
+# y_pred = grid_search.best_estimator_.predict(X_test)
 
-print(len(y_pred), len(y_test))
+# print(len(y_pred), len(y_test))
 
-threshold = 0.5
-y_pred_binary = [1 if pred >= threshold else 0 for pred in y_pred]
+# threshold = 0.5
+# y_pred_binary = [1 if pred >= threshold else 0 for pred in y_pred]
 
-print("roc_auc_score", roc_auc_score(y_test, y_pred_binary))
-print("Accuracy:", accuracy_score(y_test, y_pred_binary))
+# print("roc_auc_score", roc_auc_score(y_test, y_pred_binary))
+# print("Accuracy:", accuracy_score(y_test, y_pred_binary))
 
 joblib.dump(best_model, 'best_model_rand.pkl')
