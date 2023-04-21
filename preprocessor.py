@@ -4,7 +4,8 @@
 import numpy as np
 import pandas as pd
 import sklearn
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, PolynomialFeatures
+import pickle
 
 
 class Preprocessor:
@@ -31,15 +32,16 @@ class Preprocessor:
         :return: df_new transformed
         """
         self.df_orig = df_new
-        if 'In-hospital_death' in self.df_orig.columns:
-            self.df_orig.drop('In-hospital_death', axis=1, inplace=True)
-        self.orig_means = self.df_orig.mean(axis=0)
-        self.orig_medians = self.df_orig.median(axis=0)
-        self.orig_mins = self.df_orig.min(axis=0)
+        self.df_orig_tr = self.df_orig.copy()
+        if 'In-hospital_death' in self.df_orig_tr.columns:
+            self.df_orig_tr.drop('In-hospital_death', axis=1, inplace=True)
+        self.orig_means = self.df_orig_tr.mean(axis=0)
+        self.orig_medians = self.df_orig_tr.median(axis=0)
+        self.orig_mins = self.df_orig_tr.min(axis=0)
 
-        self.__save_isna_column_names(self.df_orig)
+        self.__save_isna_column_names(self.df_orig_tr)
 
-        self.df_orig_tr = self.transform(self.df_orig, fitting=True)
+        self.df_orig_tr = self.transform(self.df_orig_tr, fitting=True)
         return self.df_orig_tr
 
     def transform(self, df_new, fitting=False):
@@ -50,6 +52,7 @@ class Preprocessor:
         :return: df_transformed
         """
         gender_nans = df_new.Gender.isna()
+        np.random.seed(1)
         df_new.loc[gender_nans, 'Gender'] = np.random.randint(2, size=gender_nans.sum())
         df_transformed = df_new.copy()
 
@@ -60,10 +63,10 @@ class Preprocessor:
         df_transformed.fillna(self.orig_means, inplace=True)
         # df_transformed.fillna(self.orig_mins - 1, inplace=True)
         # df_transformed.fillna(0, inplace=True)
-        df_transformed = self.__add_bmi(df_transformed)
 
+        df_transformed = self.__add_bmi(df_transformed)
         df_transformed = self.__add_diff_columns(df_transformed)
-        # df_transformed = self.__add_diff_columns_w_replacing(df_transformed)
+        df_transformed = self.__add_poly_features(df_transformed)
 
         if fitting:
             self.scaler.fit(df_transformed)
@@ -90,7 +93,7 @@ class Preprocessor:
         return df_transformed
 
     def __add_bmi(self, df_new):
-        df_transformed=df_new.copy()
+        df_transformed = df_new.copy()
         df_transformed.loc[:, 'BMI'] = df_transformed.Weight / df_transformed.Height ** 2
         df_transformed.loc[:, 'BMI_isna'] = df_transformed['Height_isna'] | df_transformed['Weight_isna']
         return df_transformed
@@ -121,3 +124,12 @@ class Preprocessor:
         non_height_cols = self.unique_tests_singular != 'Height'
         self.unique_tests_singular = self.unique_tests_singular[non_height_cols]
         return df_transformed
+
+    def __add_poly_features(self, df_new):
+        poly = PolynomialFeatures(degree=2, interaction_only=True)
+        poly.set_output(transform='pandas')
+        df_transformed = poly.fit_transform(df_new)
+        col_list = []
+        with open('list of column names.txt', 'rb') as f:
+            col_list = pickle.load(f)
+        return df_transformed[col_list]
