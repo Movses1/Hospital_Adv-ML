@@ -2,6 +2,7 @@ from preprocessor import Preprocessor
 import numpy as np
 import pandas as pd
 import sklearn
+import seaborn as sns
 
 from xgboost import XGBClassifier
 from sklearn.ensemble import BaggingClassifier, AdaBoostClassifier, StackingClassifier, RandomForestClassifier
@@ -11,9 +12,10 @@ from sklearn.naive_bayes import GaussianNB, MultinomialNB, BernoulliNB
 from sklearn.linear_model import LogisticRegression
 
 from sklearn.model_selection import cross_val_score, KFold
-from sklearn.preprocessing import PolynomialFeatures
 from sklearn.metrics import roc_auc_score, accuracy_score, confusion_matrix, roc_curve
+from custom_metrics import TPR_FPR
 from matplotlib import pyplot as plt
+
 
 df = pd.read_csv('hospital_deaths_train.csv', index_col='recordid')
 transformer = Preprocessor()
@@ -21,17 +23,6 @@ transformer = Preprocessor()
 y = df['In-hospital_death']
 x = transformer.fit(df)
 print(x.shape, y.shape)
-
-poly = PolynomialFeatures(degree=2, interaction_only=True)
-poly.set_output(transform='pandas')
-x = poly.fit_transform(x)
-"""x.drop(['NISysABP_fl_isna',  'NIMAP_fl_isna',
-        'DiasABP_fl_isna', 'MAP_fl_isna',
-        'PaO2_fl_isna', 'pH_fl_isna',
-        'BUN_fl_isna',
-        'HR_fl_isna', 'GCS_fl_isna',
-        'ALT_fl_isna', 'AST_fl_isna'], axis=1, inplace=True)"""
-print(x.shape)
 
 clf0 = LogisticRegression(penalty='l1', max_iter=100000, solver='liblinear', class_weight=None)
 clf1 = XGBClassifier(learning_rate=0.1,
@@ -51,7 +42,7 @@ clf4 = BaggingClassifier(estimator=DecisionTreeClassifier(criterion='gini',
 clf5 = AdaBoostClassifier(n_estimators=100, learning_rate=0.5, random_state=1)
 clf6 = BaggingClassifier(estimator=AdaBoostClassifier(estimator=DecisionTreeClassifier(max_depth=10,
                                                                                        max_leaf_nodes=20,
-                                                                                       class_weight={0:1,1:1.3}),
+                                                                                       class_weight={0: 1, 1: 1.3}),
                                                       n_estimators=35,
                                                       learning_rate=0.3),
                          n_estimators=37)
@@ -60,7 +51,7 @@ estimators = [
     ('SVC', clf2),
     ('GNB', clf3),
     ('BC', clf4),
-    ('ADB', clf5)
+    # ('ADB', clf5)
 ]
 clf = StackingClassifier(estimators=estimators,
                          # final_estimator=LogisticRegression(penalty='elasticnet', l1_ratio=0.5, solver='saga',
@@ -71,38 +62,57 @@ clf = StackingClassifier(estimators=estimators,
 kf = KFold(n_splits=5, shuffle=True, random_state=1)
 train_scores, train_cms, scores, cms = [], [], [], []
 
-x = x[['NISysABP_last','ALP_first','HCO3_lf_diff','Age Gender','Age CCU','Age MAP_first','Age NIMAP_first','Age Glucose_last','Age NIMAP_lowest','Age SaO2_lowest','Age GCS_highest','Age HR_highest','Age GCS_median','Age HCO3_first','Age SysABP_first','Age Na_last','Age MechVentDuration','Age ALP_fl_isna','Age AST_fl_isna','Age Albumin_fl_isna','Age Bilirubin_fl_isna','Age Cholesterol_fl_isna','Age FiO2_fl_isna','Age PaCO2_fl_isna','Age PaO2_fl_isna','Age Weight_fl_isna','Age BUN_lf_diff','Age PaCO2_lf_diff','Age Platelets_lf_diff','Age WBC_lf_diff','Age GCS_hl_diff','Gender Weight','Gender CCU','Gender CSRU','Gender GCS_last','Gender HR_last','Gender HR_lowest','Gender DiasABP_highest','Gender GCS_highest','Gender GCS_median','Gender Glucose_median','Gender PaO2_first','Gender MechVentDuration','Gender MechVentLast8Hour','Gender ALP_fl_isna','Gender ALT_fl_isna','Gender Albumin_fl_isna','Gender DiasABP_fl_isna','Gender Lactate_fl_isna','Gender NIDiasABP_fl_isna','Gender NIMAP_fl_isna','Gender NISysABP_fl_isna','Gender RespRate_fl_isna','Gender SaO2_fl_isna','Gender SysABP_fl_isna','Gender TroponinI_fl_isna','Gender TroponinT_fl_isna','Gender WBC_fl_isna','Gender Weight_fl_isna','Gender MechVentDuration_isna','Gender MechVentLast8Hour_isna','Gender MechVentStartTime_isna','Gender UrineOutputSum_isna','Gender Weight_isna','Gender GCS_lf_diff','Gender Mg_lf_diff','Gender PaO2_lf_diff','Gender pH_lf_diff','Gender DiasABP_hl_diff','Gender GCS_hl_diff','Gender Temp_hl_diff','Height TroponinI_fl_isna','Height Mg_lf_diff','Weight Height_isna','Weight BMI_isna','CCU GCS_first','CCU FiO2_first','CCU PaO2_first','CCU TroponinI_first','CCU BUN_last','CCU MechVentLast8Hour','CCU ALT_fl_isna','CCU AST_fl_isna','CCU Albumin_fl_isna','CCU Bilirubin_fl_isna','CCU Cholesterol_fl_isna','CCU MAP_fl_isna','CCU NIDiasABP_fl_isna','CCU NIMAP_fl_isna','CCU NISysABP_fl_isna','CCU PaCO2_fl_isna','CCU SysABP_fl_isna','CCU TroponinT_fl_isna','CCU pH_fl_isna','CCU BMI_isna','CCU GCS_lf_diff','CCU PaO2_lf_diff','CSRU GCS_first','CSRU GCS_highest','CSRU FiO2_first','CSRU pH_first','CSRU Albumin_fl_isna','CSRU Bilirubin_fl_isna','CSRU DiasABP_fl_isna','CSRU MAP_fl_isna','CSRU NIDiasABP_fl_isna','CSRU NIMAP_fl_isna','CSRU SysABP_fl_isna','CSRU TroponinI_fl_isna','CSRU TroponinT_fl_isna','CSRU Weight_fl_isna','CSRU GCS_lf_diff','CSRU GCS_hl_diff','SICU HR_first','SICU MAP_first','SICU Temp_last','SICU GCS_lowest','SICU Temp_highest','SICU GCS_median','SICU HR_median','SICU NIMAP_median','SICU HCT_first','SICU PaCO2_first','SICU PaO2_first','SICU SysABP_first','SICU FiO2_last','SICU PaCO2_last','SICU WBC_last','SICU ALT_fl_isna','SICU AST_fl_isna','SICU Albumin_fl_isna','SICU FiO2_fl_isna','SICU Lactate_fl_isna','SICU MAP_fl_isna','SICU NIDiasABP_fl_isna','SICU NIMAP_fl_isna','SICU NISysABP_fl_isna','SICU RespRate_fl_isna','SICU SaO2_fl_isna','SICU TroponinI_fl_isna','SICU Weight_fl_isna','SICU MechVentDuration_isna','SICU MechVentLast8Hour_isna','SICU MechVentStartTime_isna','SICU UrineOutputSum_isna','SICU DiasABP_lf_diff','SICU MAP_lf_diff','SICU SysABP_lf_diff','SICU pH_lf_diff','DiasABP_first PaCO2_first','DiasABP_first Height_isna','DiasABP_first TroponinT_fl_isna','DiasABP_first BMI_isna','GCS_first GCS_lowest','GCS_first GCS_highest','GCS_first HR_highest','GCS_first Temp_median','GCS_first Height_isna','GCS_first PaCO2_fl_isna','GCS_first PaO2_fl_isna','GCS_first Platelets_fl_isna','GCS_first SaO2_fl_isna','GCS_first SysABP_fl_isna','GCS_first TroponinI_fl_isna','GCS_first TroponinT_fl_isna','GCS_first BMI_isna','GCS_first GCS_lf_diff','GCS_first Temp_lf_diff','Glucose_first GCS_last','HR_first MechVentDuration_isna','HR_first MechVentLast8Hour_isna','HR_first MechVentStartTime_isna','HR_first UrineOutputSum_isna','NIDiasABP_first Albumin_fl_isna','NIDiasABP_first TroponinI_fl_isna','NIMAP_first Albumin_fl_isna','NISysABP_first GCS_last','NISysABP_first SaO2_median','NISysABP_first FiO2_fl_isna','SaO2_first Temp_first','SaO2_first GCS_last','SaO2_first NISysABP_last','SaO2_first Temp_lowest','SaO2_first NIDiasABP_median','Temp_first SaO2_last','Temp_first NISysABP_highest','Temp_first SaO2_highest','Temp_first SaO2_median','Temp_first FiO2_first','Temp_first Na_first','Temp_first PaCO2_first','Temp_first DiasABP_fl_isna','Temp_first MAP_fl_isna','Temp_first RespRate_fl_isna','Temp_first TroponinI_fl_isna','Temp_first MAP_lf_diff','Temp_first Mg_lf_diff','Temp_first SysABP_lf_diff','Temp_first pH_lf_diff','DiasABP_last Height_isna','DiasABP_last ALT_fl_isna','DiasABP_last BMI_isna','GCS_last Temp_last','GCS_last Temp_lowest','GCS_last DiasABP_highest','GCS_last SaO2_highest','GCS_last Temp_highest','GCS_last Glucose_median','GCS_last Temp_median','GCS_last FiO2_first','GCS_last PaO2_first','GCS_last Albumin_last','GCS_last HCT_last','GCS_last MechVentLast8Hour','GCS_last Albumin_fl_isna','GCS_last Bilirubin_fl_isna','GCS_last MAP_fl_isna','GCS_last SaO2_fl_isna','GCS_last TroponinT_fl_isna','GCS_last BMI_isna','GCS_last HCO3_lf_diff','GCS_last Temp_lf_diff','GCS_last DiasABP_hl_diff','GCS_last NIMAP_hl_diff','GCS_last NISysABP_hl_diff','Glucose_last Cholesterol_fl_isna','Glucose_last SaO2_fl_isna','Glucose_last TroponinI_fl_isna','HR_last HR_lowest','HR_last HR_median','HR_last Weight_fl_isna','NIDiasABP_last ALT_fl_isna','NIDiasABP_last SaO2_fl_isna','NIDiasABP_last SysABP_fl_isna','NIDiasABP_last TroponinT_fl_isna','NIMAP_last TroponinT_fl_isna','NIMAP_last Weight_fl_isna','NISysABP_last SaO2_last','NISysABP_last Temp_lowest','NISysABP_last SaO2_highest','NISysABP_last SaO2_median','NISysABP_last Cholesterol_fl_isna','NISysABP_last BMI_isna','NISysABP_last Mg_lf_diff','NISysABP_last Weight_lf_diff','RespRate_last pH_fl_isna','SaO2_last Temp_lowest','SaO2_last Lactate_last','Temp_last GCS_highest','Temp_last Cholesterol_fl_isna','Temp_last TroponinT_fl_isna','Temp_last SysABP_lf_diff','GCS_lowest GCS_highest','GCS_lowest GCS_median','GCS_lowest RespRate_median','GCS_lowest FiO2_first','GCS_lowest pH_first','GCS_lowest MechVentStartTime','GCS_lowest Height_isna','GCS_lowest FiO2_fl_isna','GCS_lowest Lactate_fl_isna','GCS_lowest RespRate_fl_isna','GCS_lowest SaO2_fl_isna','GCS_lowest TroponinI_fl_isna','GCS_lowest Weight_fl_isna','GCS_lowest Weight_isna','GCS_lowest BMI_isna','GCS_lowest FiO2_lf_diff','GCS_lowest Temp_lf_diff','Glucose_lowest Lactate_fl_isna','Glucose_lowest SaO2_fl_isna','HR_lowest GCS_highest','HR_lowest SaO2_fl_isna','HR_lowest TroponinT_fl_isna','NIDiasABP_lowest RespRate_fl_isna','NIDiasABP_lowest SaO2_fl_isna','NIMAP_lowest TroponinT_fl_isna','RespRate_lowest ALT_fl_isna','RespRate_lowest PaO2_fl_isna','RespRate_lowest Weight_fl_isna','RespRate_lowest pH_fl_isna','SaO2_lowest Lactate_last','SaO2_lowest MechVentDuration','SaO2_lowest MechVentLast8Hour','SaO2_lowest Platelets_lf_diff','Temp_lowest NISysABP_highest','Temp_lowest SaO2_highest','Temp_lowest Temp_median','Temp_lowest FiO2_first','Temp_lowest Na_first','Temp_lowest TroponinI_fl_isna','Temp_lowest Weight_fl_isna','Temp_lowest HCO3_lf_diff','Temp_lowest MAP_lf_diff','Temp_lowest Mg_lf_diff','Temp_lowest SysABP_lf_diff','GCS_highest Temp_highest','GCS_highest Temp_median','GCS_highest MechVentLast8Hour','GCS_highest Albumin_fl_isna','GCS_highest Bilirubin_fl_isna','GCS_highest TroponinT_fl_isna','GCS_highest BMI_isna','GCS_highest Temp_lf_diff','Glucose_highest TroponinI_fl_isna','HR_highest MechVentDuration','HR_highest MechVentLast8Hour','HR_highest Bilirubin_fl_isna','HR_highest RespRate_fl_isna','NIMAP_highest Albumin_fl_isna','NIMAP_highest Lactate_fl_isna','NISysABP_highest Cholesterol_fl_isna','NISysABP_highest TroponinT_fl_isna','NISysABP_highest Mg_lf_diff','NISysABP_highest SysABP_lf_diff','SaO2_highest PaCO2_first','SaO2_highest MAP_fl_isna','Temp_highest TroponinI_fl_isna','Temp_highest GCS_hl_diff','DiasABP_median GCS_median','DiasABP_median MechVentLast8Hour','DiasABP_median RespRate_fl_isna','GCS_median FiO2_first','GCS_median WBC_last','GCS_median SaO2_fl_isna','GCS_median Weight_fl_isna','GCS_median BUN_lf_diff','Glucose_median Lactate_fl_isna','HR_median MechVentDuration','HR_median ALP_fl_isna','HR_median Weight_fl_isna','HR_median BMI_isna','NIDiasABP_median Na_first','NIDiasABP_median ALT_fl_isna','NIDiasABP_median Albumin_fl_isna','NIDiasABP_median SaO2_fl_isna','NIDiasABP_median TroponinI_fl_isna','NIDiasABP_median TroponinT_fl_isna','NIMAP_median Weight_fl_isna','RespRate_median MechVentDuration_isna','RespRate_median MechVentLast8Hour_isna','RespRate_median MechVentStartTime_isna','RespRate_median UrineOutputSum_isna','Temp_median FiO2_first','Temp_median PaCO2_first','Temp_median TroponinT_fl_isna','Temp_median SysABP_lf_diff','Temp_median GCS_hl_diff','ALP_first RespRate_fl_isna','ALP_first TroponinT_fl_isna','ALT_first TroponinT_fl_isna','Albumin_first ALP_fl_isna','Albumin_first ALT_fl_isna','Albumin_first AST_fl_isna','Albumin_first Bilirubin_fl_isna','Albumin_first MAP_fl_isna','Albumin_first TroponinT_fl_isna','Albumin_first GCS_hl_diff','BUN_first Weight_fl_isna','FiO2_first HCT_first','FiO2_first PaO2_first','FiO2_first BUN_last','FiO2_first FiO2_last','FiO2_first Albumin_fl_isna','FiO2_first Cholesterol_fl_isna','FiO2_first Lactate_fl_isna','FiO2_first RespRate_fl_isna','FiO2_first TroponinI_fl_isna','FiO2_first GCS_lf_diff','HCO3_first pH_first','HCO3_first HCO3_last','HCO3_first MechVentLast8Hour','HCO3_first MAP_fl_isna','HCO3_first RespRate_fl_isna','HCO3_first Platelets_lf_diff','HCT_first Height_isna','HCT_first TroponinT_fl_isna','HCT_first Weight_isna','K_first BMI_isna','Lactate_first TroponinI_fl_isna','Na_first TroponinT_fl_isna','Na_first Weight_fl_isna','PaCO2_first ALP_fl_isna','PaCO2_first Bilirubin_fl_isna','PaCO2_first SaO2_fl_isna','PaCO2_first TroponinI_fl_isna','PaCO2_first TroponinT_fl_isna','PaO2_first Na_last','PaO2_first MechVentDuration','PaO2_first MechVentLast8Hour','PaO2_first Height_isna','PaO2_first ALT_fl_isna','PaO2_first Cholesterol_fl_isna','PaO2_first TroponinI_fl_isna','PaO2_first BMI_isna','PaO2_first GCS_lf_diff','PaO2_first GCS_hl_diff','Platelets_first PaO2_fl_isna','SysABP_first MechVentDuration','SysABP_first Albumin_fl_isna','pH_first TroponinT_fl_isna','Albumin_last TroponinI_fl_isna','BUN_last SaO2_fl_isna','BUN_last TroponinI_fl_isna','BUN_last TroponinT_fl_isna','BUN_last Weight_isna','BUN_last GCS_hl_diff','Bilirubin_last RespRate_fl_isna','Bilirubin_last SaO2_fl_isna','Bilirubin_last TroponinT_fl_isna','Creatinine_last Cholesterol_fl_isna','FiO2_last MAP_fl_isna','FiO2_last RespRate_fl_isna','FiO2_last TroponinI_fl_isna','FiO2_last MechVentStartTime_isna','HCO3_last MechVentDuration_isna','HCO3_last MechVentLast8Hour_isna','HCO3_last MechVentStartTime_isna','HCO3_last UrineOutputSum_isna','HCT_last Height_isna','HCT_last FiO2_fl_isna','HCT_last Lactate_fl_isna','HCT_last MAP_fl_isna','HCT_last SysABP_fl_isna','K_last Height_isna','K_last RespRate_fl_isna','K_last BMI_isna','K_last PaO2_lf_diff','Lactate_last TroponinI_fl_isna','Mg_last SaO2_fl_isna','Mg_last Weight_fl_isna','PaCO2_last Height_isna','PaO2_last ALP_fl_isna','WBC_last ALT_fl_isna','WBC_last AST_fl_isna','WBC_last Bilirubin_fl_isna','Weight_last Bilirubin_fl_isna','Weight_last Cholesterol_fl_isna','pH_last SaO2_fl_isna','pH_last SysABP_fl_isna','pH_last BMI_isna','MechVentStartTime Height_isna','MechVentStartTime MAP_fl_isna','MechVentStartTime BMI_isna','MechVentDuration MechVentLast8Hour','MechVentDuration MAP_fl_isna','MechVentDuration PaO2_fl_isna','MechVentDuration SaO2_fl_isna','MechVentDuration SysABP_fl_isna','MechVentDuration Na_lf_diff','MechVentDuration Platelets_lf_diff','MechVentDuration GCS_hl_diff','MechVentLast8Hour Height_isna','MechVentLast8Hour Albumin_fl_isna','MechVentLast8Hour Bilirubin_fl_isna','MechVentLast8Hour Lactate_fl_isna','MechVentLast8Hour Platelets_fl_isna','MechVentLast8Hour SaO2_fl_isna','MechVentLast8Hour BMI_isna','MechVentLast8Hour Platelets_lf_diff','MechVentLast8Hour Temp_lf_diff','MechVentLast8Hour GCS_hl_diff','MechVentLast8Hour HR_hl_diff','UrineOutputSum Cholesterol_fl_isna','Height_isna ALP_fl_isna','Height_isna Albumin_fl_isna','Height_isna Bilirubin_fl_isna','Height_isna Cholesterol_fl_isna','Height_isna NIMAP_fl_isna','Height_isna NISysABP_fl_isna','Height_isna Weight_fl_isna','Height_isna BUN_lf_diff','ALP_fl_isna ALT_fl_isna','ALP_fl_isna AST_fl_isna','ALP_fl_isna Albumin_fl_isna','ALP_fl_isna FiO2_fl_isna','ALP_fl_isna MAP_fl_isna','ALP_fl_isna RespRate_fl_isna','ALP_fl_isna SaO2_fl_isna','ALP_fl_isna HCT_lf_diff','ALT_fl_isna DiasABP_fl_isna','ALT_fl_isna FiO2_fl_isna','ALT_fl_isna SysABP_fl_isna','ALT_fl_isna GCS_lf_diff','ALT_fl_isna NIDiasABP_lf_diff','ALT_fl_isna SysABP_lf_diff','ALT_fl_isna GCS_hl_diff','AST_fl_isna DiasABP_fl_isna','AST_fl_isna SysABP_fl_isna','AST_fl_isna NIMAP_hl_diff','Albumin_fl_isna Bilirubin_fl_isna','Albumin_fl_isna Cholesterol_fl_isna','Albumin_fl_isna Lactate_fl_isna','Albumin_fl_isna MAP_fl_isna','Albumin_fl_isna Mg_fl_isna','Albumin_fl_isna RespRate_fl_isna','Albumin_fl_isna SaO2_fl_isna','Albumin_fl_isna TroponinI_fl_isna','Albumin_fl_isna TroponinT_fl_isna','Albumin_fl_isna WBC_fl_isna','Albumin_fl_isna Weight_isna','Albumin_fl_isna DiasABP_hl_diff','Albumin_fl_isna GCS_hl_diff','Albumin_fl_isna NIDiasABP_hl_diff','Bilirubin_fl_isna DiasABP_fl_isna','Bilirubin_fl_isna SysABP_fl_isna','Bilirubin_fl_isna Weight_isna','Bilirubin_fl_isna HCT_lf_diff','Bilirubin_fl_isna GCS_hl_diff','Cholesterol_fl_isna DiasABP_fl_isna','Cholesterol_fl_isna Glucose_fl_isna','Cholesterol_fl_isna Lactate_fl_isna','Cholesterol_fl_isna NISysABP_fl_isna','Cholesterol_fl_isna SaO2_fl_isna','Cholesterol_fl_isna SysABP_fl_isna','Cholesterol_fl_isna TroponinI_fl_isna','Cholesterol_fl_isna MechVentDuration_isna','Cholesterol_fl_isna MechVentLast8Hour_isna','Cholesterol_fl_isna MechVentStartTime_isna','Cholesterol_fl_isna UrineOutputSum_isna','Cholesterol_fl_isna BMI_isna','DiasABP_fl_isna Lactate_fl_isna','DiasABP_fl_isna WBC_fl_isna','DiasABP_fl_isna Weight_isna','DiasABP_fl_isna BMI_isna','DiasABP_fl_isna Glucose_hl_diff','FiO2_fl_isna Mg_fl_isna','FiO2_fl_isna PaCO2_fl_isna','FiO2_fl_isna PaO2_fl_isna','FiO2_fl_isna SaO2_fl_isna','FiO2_fl_isna SysABP_fl_isna','FiO2_fl_isna TroponinI_fl_isna','FiO2_fl_isna NISysABP_lf_diff','FiO2_fl_isna NISysABP_hl_diff','GCS_fl_isna SaO2_fl_isna','GCS_fl_isna TroponinT_fl_isna','HR_fl_isna SaO2_fl_isna','HR_fl_isna TroponinT_fl_isna','Lactate_fl_isna NIDiasABP_fl_isna','Lactate_fl_isna NIMAP_fl_isna','Lactate_fl_isna PaCO2_fl_isna','Lactate_fl_isna PaO2_fl_isna','Lactate_fl_isna RespRate_fl_isna','Lactate_fl_isna SysABP_fl_isna','Lactate_fl_isna TroponinI_fl_isna','Lactate_fl_isna TroponinT_fl_isna','Lactate_fl_isna Weight_fl_isna','Lactate_fl_isna Weight_isna','Lactate_fl_isna BMI_isna','Lactate_fl_isna FiO2_lf_diff','Lactate_fl_isna GCS_hl_diff','Lactate_fl_isna HR_hl_diff','Lactate_fl_isna NIMAP_hl_diff','MAP_fl_isna PaO2_fl_isna','MAP_fl_isna RespRate_fl_isna','MAP_fl_isna WBC_fl_isna','MAP_fl_isna Weight_fl_isna','MAP_fl_isna BMI_isna','MAP_fl_isna GCS_lf_diff','MAP_fl_isna HCO3_lf_diff','MAP_fl_isna Platelets_lf_diff','MAP_fl_isna WBC_lf_diff','NIDiasABP_fl_isna PaCO2_fl_isna','NIDiasABP_fl_isna PaO2_fl_isna','NIDiasABP_fl_isna BMI_isna','NIDiasABP_fl_isna pH_lf_diff','NIDiasABP_fl_isna GCS_hl_diff','NIMAP_fl_isna PaO2_fl_isna','NIMAP_fl_isna BMI_isna','NIMAP_fl_isna pH_lf_diff','NIMAP_fl_isna GCS_hl_diff','NISysABP_fl_isna PaCO2_fl_isna','NISysABP_fl_isna PaO2_fl_isna','NISysABP_fl_isna pH_lf_diff','PaCO2_fl_isna Weight_fl_isna','PaCO2_fl_isna HCO3_lf_diff','PaO2_fl_isna RespRate_fl_isna','PaO2_fl_isna Weight_fl_isna','PaO2_fl_isna BMI_isna','PaO2_fl_isna Glucose_lf_diff','RespRate_fl_isna SysABP_fl_isna','RespRate_fl_isna TroponinT_fl_isna','RespRate_fl_isna Weight_fl_isna','RespRate_fl_isna pH_fl_isna','RespRate_fl_isna NIMAP_hl_diff','SaO2_fl_isna SysABP_fl_isna','SaO2_fl_isna Temp_fl_isna','SaO2_fl_isna TroponinI_fl_isna','SaO2_fl_isna Weight_fl_isna','SaO2_fl_isna MechVentDuration_isna','SaO2_fl_isna MechVentLast8Hour_isna','SaO2_fl_isna MechVentStartTime_isna','SaO2_fl_isna UrineOutputSum_isna','SaO2_fl_isna BUN_lf_diff','SaO2_fl_isna Platelets_lf_diff','SysABP_fl_isna TroponinT_fl_isna','SysABP_fl_isna WBC_fl_isna','SysABP_fl_isna Weight_fl_isna','SysABP_fl_isna MechVentDuration_isna','SysABP_fl_isna MechVentLast8Hour_isna','SysABP_fl_isna MechVentStartTime_isna','SysABP_fl_isna UrineOutputSum_isna','SysABP_fl_isna Weight_isna','SysABP_fl_isna HCO3_lf_diff','SysABP_fl_isna Temp_lf_diff','SysABP_fl_isna Glucose_hl_diff','Temp_fl_isna TroponinT_fl_isna','TroponinI_fl_isna Weight_isna','TroponinI_fl_isna Platelets_lf_diff','TroponinI_fl_isna GCS_hl_diff','TroponinI_fl_isna Glucose_hl_diff','TroponinI_fl_isna MAP_hl_diff','TroponinT_fl_isna MechVentDuration_isna','TroponinT_fl_isna MechVentLast8Hour_isna','TroponinT_fl_isna MechVentStartTime_isna','TroponinT_fl_isna UrineOutputSum_isna','TroponinT_fl_isna BMI_isna','TroponinT_fl_isna Temp_lf_diff','TroponinT_fl_isna DiasABP_hl_diff','TroponinT_fl_isna GCS_hl_diff','TroponinT_fl_isna Glucose_hl_diff','Weight_fl_isna MechVentDuration_isna','Weight_fl_isna MechVentLast8Hour_isna','Weight_fl_isna MechVentStartTime_isna','Weight_fl_isna UrineOutputSum_isna','Weight_fl_isna Weight_isna','pH_fl_isna Glucose_lf_diff','MechVentDuration_isna Weight_isna','MechVentDuration_isna FiO2_lf_diff','MechVentDuration_isna NISysABP_lf_diff','MechVentDuration_isna WBC_lf_diff','MechVentDuration_isna GCS_hl_diff','MechVentLast8Hour_isna FiO2_lf_diff','MechVentLast8Hour_isna NISysABP_lf_diff','MechVentLast8Hour_isna WBC_lf_diff','MechVentStartTime_isna Weight_isna','MechVentStartTime_isna FiO2_lf_diff','MechVentStartTime_isna NISysABP_lf_diff','MechVentStartTime_isna WBC_lf_diff','MechVentStartTime_isna GCS_hl_diff','UrineOutputSum_isna Weight_isna','UrineOutputSum_isna FiO2_lf_diff','UrineOutputSum_isna WBC_lf_diff','UrineOutputSum_isna GCS_hl_diff','BMI_isna BUN_lf_diff','BMI_isna HR_lf_diff','HCO3_lf_diff Mg_lf_diff','Mg_lf_diff SysABP_lf_diff',]]
 print(x.shape)
-
+df_tests = 0
+df_thresholds = 0
 for train_index, test_index in kf.split(x):
-    clf = clf6
-    clf.fit(x.iloc[train_index], y.iloc[train_index])
-    train_probs = clf.predict_proba(x.iloc[train_index])
-    train_preds = clf.predict(x.iloc[train_index])
-    preds = clf.predict(x.iloc[test_index])
-    probs = clf.predict_proba(x.iloc[test_index])
+    for est in estimators:
+        clf = est[1]
+        clf.fit(x.iloc[train_index], y.iloc[train_index])
+        train_probs = clf.predict_proba(x.iloc[train_index])
+        train_preds = clf.predict(x.iloc[train_index])
+        preds = clf.predict(x.iloc[test_index])
+        probs = clf.predict_proba(x.iloc[test_index])
 
-    train_acc = accuracy_score(y.iloc[train_index], train_preds)
-    train_auc = roc_auc_score(y.iloc[train_index], train_probs[:, 1])
-    train_cm = confusion_matrix(y.iloc[train_index], train_preds)
+        train_acc = accuracy_score(y.iloc[train_index], train_preds)
+        train_auc = roc_auc_score(y.iloc[train_index], train_probs[:, 1])
+        train_cm = confusion_matrix(y.iloc[train_index], train_preds)
 
-    acc = accuracy_score(y.iloc[test_index], preds)
-    auc = roc_auc_score(y.iloc[test_index], probs[:, 1])
-    cm = confusion_matrix(y.iloc[test_index], preds)
+        acc = accuracy_score(y.iloc[test_index], preds)
+        auc = roc_auc_score(y.iloc[test_index], probs[:, 1])
+        cm = confusion_matrix(y.iloc[test_index], preds)
 
-    print(acc, auc)
-    print(cm)
-    train_scores.append(np.array([train_acc, train_auc]))
-    train_cms.append(train_cm)
-    scores.append(np.array([acc, auc]))
-    cms.append(cm)
-    roc = roc_curve(y.iloc[test_index], probs[:, 1])
-    plt.plot(roc[0], roc[1])
+        print(acc, auc)
+        print(cm)
+        train_scores.append(np.array([train_acc, train_auc]))
+        train_cms.append(train_cm)
+        scores.append(np.array([acc, auc]))
+        cms.append(cm)
+        roc = roc_curve(y.iloc[test_index], probs[:, 1])
+        plt.plot(roc[0], roc[1], label=est[0])
 
-print()
+        df_tst, df_thr = TPR_FPR(roc, est[0], True)
+        df_tst.loc[:, 'AUC'] = auc
+        if type(df_tests) == int:
+            df_tests = df_tst
+            df_thresholds = df_thr
+        else:
+            df_tests = pd.concat([df_tests, df_tst])
+            df_thresholds = pd.concat([df_thresholds, df_thr])
+
+        print(clf.classes_)
+        print(df_thresholds)
+plt.legend()
+plt.show()
+
+print('\ntrain scores')
 print(np.array(train_scores).mean(axis=0))
-print(np.array(train_cms).mean(axis=0), '\n')
+print(np.array(train_cms).mean(axis=0), '\ntest scores')
 print(np.array(scores).mean(axis=0))
 print(np.array(cms).mean(axis=0))
+print('\naverage thresholds')
+print(df_thresholds.groupby('classifier').mean())
+df_thresholds.groupby('classifier').mean().to_csv('thresholds.csv')
 
+sns.heatmap(df_tests.groupby('classifier').mean(), annot=True, cmap="crest")
 plt.show()
