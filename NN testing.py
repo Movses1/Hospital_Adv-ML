@@ -7,6 +7,7 @@ import tensorflow as tf
 from tensorflow.keras.layers import Input, Dropout, Flatten, Dense, BatchNormalization, Reshape, Bidirectional, \
     GaussianNoise, LSTM
 from tensorflow.keras import Sequential
+from tensorflow.keras.regularizers import L1
 
 from sklearn.model_selection import cross_val_score, KFold
 from sklearn.preprocessing import PolynomialFeatures
@@ -20,23 +21,13 @@ y = df['In-hospital_death']
 x = transformer.fit(df)
 print(x.shape, y.shape)
 
-poly = PolynomialFeatures(degree=2, interaction_only=True)
-poly.set_output(transform='pandas')
-#x = poly.fit_transform(x)
-"""x.drop(['NISysABP_fl_isna',  'NIMAP_fl_isna',
-        'DiasABP_fl_isna', 'MAP_fl_isna',
-        'PaO2_fl_isna', 'pH_fl_isna',
-        'BUN_fl_isna',
-        'HR_fl_isna', 'GCS_fl_isna',
-        'ALT_fl_isna', 'AST_fl_isna'], axis=1, inplace=True)"""
-print(x.shape)
-
+tf.random.set_seed(1)
 def build_model():
     model = Sequential()
     model.add(Input(shape=(x.shape[1],)))
-    model.add(Dense(2048, activation='relu'))
-    model.add(GaussianNoise(0.1, seed=1))
+    model.add(Dense(2048, activation='relu', kernel_regularizer=L1(0.001)))
     model.add(Dense(1024, activation='relu'))
+    model.add(GaussianNoise(0.1, seed=1))
     model.add(Dropout(0.15))
     model.add(Dense(512, activation='relu'))
     model.add(Dense(256, activation='relu'))
@@ -56,8 +47,8 @@ for train_index, test_index in kf.split(x):
     clf = build_model()
     clf.fit(x.iloc[train_index], y.iloc[train_index],
             batch_size=32,
-            epochs=20,
-            class_weight={0: 1, 1: 6.2}, verbose=2
+            epochs=30,
+            class_weight={0: 1, 1: 6}, verbose=2
             )
 
     train_probs = clf.predict(x.iloc[train_index])
@@ -89,7 +80,3 @@ print(np.array(scores).mean(axis=0))
 print(np.array(cms).mean(axis=0))
 
 plt.show()
-
-# scores = cross_val_score(clf, x, y, cv=5, scoring='roc_auc')
-# print(scores)
-# print(scores.mean(axis=0))
