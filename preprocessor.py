@@ -63,12 +63,10 @@ class Preprocessor:
 
         # you choose how you fill the nans
         df_transformed.fillna(self.orig_means, inplace=True)
-        # df_transformed.fillna(self.orig_mins - 1, inplace=True)
-        # df_transformed.fillna(0, inplace=True)
 
         df_transformed = self.__add_bmi(df_transformed)
         df_transformed = self.__add_diff_columns(df_transformed)
-        df_transformed = self.__add_poly_features(df_transformed)
+        # df_transformed = self.__add_poly_features(df_transformed)
 
         if fitting:
             self.scaler.fit(df_transformed)
@@ -131,7 +129,7 @@ class Preprocessor:
         poly = PolynomialFeatures(degree=2, interaction_only=True)
         poly.set_output(transform='pandas')
         df_transformed = poly.fit_transform(df_new)
-        col_list = []
-        with open('list of column names.txt', 'rb') as f:
-            col_list = pickle.load(f)
-        return df_transformed[col_list]
+        # col_list = []
+        # with open('list of column names.txt', 'rb') as f:
+        #     col_list = pickle.load(f)
+        return df_transformed#[col_list]
