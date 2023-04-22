@@ -10,6 +10,7 @@ import pickle
 
 class Preprocessor:
     def __init__(self):
+        self._fitted = False
         self.df_orig = None  # train dataframe
         self.scaler = MinMaxScaler()  # Warning: scaler should be fitted only on train data
         self.scaler.set_output(transform='pandas')
@@ -23,7 +24,7 @@ class Preprocessor:
         self.unique_tests = []  # unique medical test names that have extensions
         self.unique_tests_singular = []  # unique medical tests that don't have any extensions
 
-    def fit(self, df_new):
+    def fit_transform(self, df_new):
         """
         :param df_new:
         fits the scaler after performing the transformations
@@ -41,16 +42,29 @@ class Preprocessor:
 
         self.__save_isna_column_names(self.df_orig_tr)
 
-        self.df_orig_tr = self.transform(self.df_orig_tr, fitting=True)
+        self._fitted = True
+        self.df_orig_tr = self.transform(self.df_orig_tr, _fitting=True)
+        print('preprocessor fitted\nsaving to fitted_preprocessor.pkl ...')
+        with open('fitted_preprocessor.pkl', 'wb') as f:
+            pickle.dump(self, f)
+        print('saved!')
         return self.df_orig_tr
 
-    def transform(self, df_new, fitting=False):
+    def transform(self, df_new, _fitting=False):
         """
         :param df_new: dataframe we are transforming
-        :param fitting: weather or not we want to fit the scaler
+        :param _fitting: weather or not we want to fit the scaler
         transforms the original dataframe by adding new columns and handling nan values
         :return: df_transformed
         """
+        if not self._fitted:
+            print('preprocessor not fitted, loading from fitted_preprocessor.pkl ...')
+            transformer = None
+            with open('fitted_preprocessor.pkl', 'rb') as f:
+                transformer = pickle.load(f)
+            print('loaded')
+            return transformer.transform(df_new)
+
         df_transformed = df_new.copy()
         if 'In-hospital_death' in df_transformed.columns:
             df_transformed.drop('In-hospital_death', axis=1, inplace=True)
@@ -66,9 +80,8 @@ class Preprocessor:
 
         df_transformed = self.__add_bmi(df_transformed)
         df_transformed = self.__add_diff_columns(df_transformed)
-        # df_transformed = self.__add_poly_features(df_transformed)
 
-        if fitting:
+        if _fitting:
             self.scaler.fit(df_transformed)
         return self.scaler.transform(df_transformed)
 
@@ -132,4 +145,4 @@ class Preprocessor:
         # col_list = []
         # with open('list of column names.txt', 'rb') as f:
         #     col_list = pickle.load(f)
-        return df_transformed#[col_list]
+        return df_transformed  # [col_list]
