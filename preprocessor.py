@@ -51,10 +51,12 @@ class Preprocessor:
         transforms the original dataframe by adding new columns and handling nan values
         :return: df_transformed
         """
-        gender_nans = df_new.Gender.isna()
-        np.random.seed(1)
-        df_new.loc[gender_nans, 'Gender'] = np.random.randint(2, size=gender_nans.sum())
         df_transformed = df_new.copy()
+        if 'In-hospital_death' in df_transformed.columns:
+            df_transformed.drop('In-hospital_death', axis=1, inplace=True)
+        gender_nans = df_transformed.Gender.isna()
+        np.random.seed(1)
+        df_transformed.loc[gender_nans, 'Gender'] = np.random.randint(2, size=gender_nans.sum())
 
         df_transformed = self.__handle_heights(df_transformed)
         df_transformed = self.__add_isna_columns(df_transformed)
