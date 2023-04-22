@@ -46,7 +46,7 @@ class Model:
         if not self.__fitted:
             with open('final_model.pkl', 'rb') as f:
                 self.model = pickle.load(f)
-        return self.model.predict(x)
+        return self.model.predict_proba(x)
 
     @staticmethod
     def __stacker_m():
