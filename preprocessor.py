@@ -58,11 +58,12 @@ class Preprocessor:
         :return: df_transformed
         """
         if not self._fitted:
+            # transform checks if preprocessor is fitted or not and loads fitted one if necessary
             print('preprocessor not fitted, loading from fitted_preprocessor.pkl ...')
             transformer = None
             with open('fitted_preprocessor.pkl', 'rb') as f:
                 transformer = pickle.load(f)
-            print('loaded')
+            print('loaded\ntransformed')
             return transformer.transform(df_new)
 
         df_transformed = df_new.copy()
@@ -74,6 +75,7 @@ class Preprocessor:
 
         df_transformed = self.__handle_heights(df_transformed)
         df_transformed = self.__add_isna_columns(df_transformed)
+        df_transformed.loc[:, 'Gender_isna'] = gender_nans * 1
 
         # you choose how you fill the nans
         df_transformed.fillna(self.orig_means, inplace=True)
@@ -86,7 +88,7 @@ class Preprocessor:
         return self.scaler.transform(df_transformed)
 
     def __save_isna_column_names(self, df_new):
-        # creating _isna columns for tests with extensions
+        # creating _isna columns for medical tests
         test_name = np.array([i[:i.find('_')] for i in df_new.columns if '_' in i])
         test_name_singular = np.array([i for i in df_new.columns if '_' not in i])
         self.unique_tests = np.unique(test_name).astype('object')
