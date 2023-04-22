@@ -20,8 +20,8 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 class Model:
     def __init__(self):
         self.fitted = False
-        stacker_m = self.__stacker_m()
-        stacker_a = self.__stacker_a()
+        stacker_m = Model.__stacker_m()
+        stacker_a = Model.__stacker_a()
         estimators = [
             ('stacker_m', stacker_m),
             ('stacker_a', stacker_a)
@@ -48,7 +48,8 @@ class Model:
                 self.model = pickle.load(f)
         return self.model.predict(x)
 
-    def __stacker_m(self):
+    @staticmethod
+    def __stacker_m():
         clf_m_1 = XGBClassifier(learning_rate=0.1,
                                 max_depth=10,
                                 max_leaves=20,
@@ -77,7 +78,8 @@ class Model:
                                        n_jobs=2)
         return stacker_m
 
-    def __stacker_a(self):
+    @staticmethod
+    def __stacker_a():
         clf_a_1 = KNeighborsClassifier(n_neighbors=25, weights="distance")
         clf_a_2 = LinearDiscriminantAnalysis()
         clf_a_3 = BaggingClassifier(estimator=AdaBoostClassifier(estimator=DecisionTreeClassifier(max_depth=10,
