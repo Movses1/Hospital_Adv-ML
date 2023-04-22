@@ -24,6 +24,7 @@ y = df['In-hospital_death']
 x = transformer.fit(df)
 print(x.shape, y.shape)
 
+clf_logist = LogisticRegression(penalty='l1', solver='liblinear', class_weight='balanced')
 clf0 = LogisticRegression(penalty='l1', max_iter=100000, solver='liblinear', class_weight=None)
 clf1 = XGBClassifier(learning_rate=0.1,
                      max_depth=5,
@@ -47,10 +48,11 @@ clf6 = BaggingClassifier(estimator=AdaBoostClassifier(estimator=DecisionTreeClas
                                                       learning_rate=0.3),
                          n_estimators=37)
 estimators = [
+    #('L1', clf_logist),
     ('XGB', clf1),
-    ('SVC', clf2),
-    ('GNB', clf3),
-    ('BC', clf4),
+    #('SVC', clf2),
+    #('GNB', clf3),
+    #('BC', clf4),
     # ('ADB', clf5)
 ]
 clf = StackingClassifier(estimators=estimators,
@@ -112,7 +114,7 @@ print(np.array(scores).mean(axis=0))
 print(np.array(cms).mean(axis=0))
 print('\naverage thresholds')
 print(df_thresholds.groupby('classifier').mean())
-df_thresholds.groupby('classifier').mean().to_csv('thresholds.csv')
+#df_thresholds.groupby('classifier').mean().to_csv('thresholds.csv')
 
 sns.heatmap(df_tests.groupby('classifier').mean(), annot=True, cmap="crest")
 plt.show()
