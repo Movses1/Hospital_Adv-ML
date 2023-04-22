@@ -19,7 +19,7 @@ args = parser.parse_args()
 
 class Pipeline:
     def __init__(self):
-        self.df = pd.read_csv(args.data_path)
+        self.df = pd.read_csv(args.data_path, index_col='recordid')
         self.inference = args.inference
         self.model = Model()
         self.transformer = Preprocessor()
@@ -34,7 +34,7 @@ class Pipeline:
         if test:
             x = self.transformer.transform(self.df)
             preds = self.model.predict(x)
-            dump_dict = {'predict_probas': preds, 'threshold': 0.42}
+            dump_dict = {'predict_probas': preds.tolist(), 'threshold': 0.42}
             with open('predictions.json', 'w') as f:
                 json.dump(dump_dict, f)
 
@@ -44,3 +44,6 @@ class Pipeline:
             X, Y = self.df.drop('In-hospital_death', axis=1), self.df['In-hospital_death']
             X = self.transformer.fit_transform(self.df)
             self.model.fit(X, Y)
+
+obj = Pipeline()
+obj.run()
