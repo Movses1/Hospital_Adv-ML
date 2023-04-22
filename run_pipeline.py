@@ -12,7 +12,7 @@ import pickle
 import json
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--data_path", type=str, required=True, help="path to hospital.csv")
+parser.add_argument("--data_path", type=str, default="hospital_deaths_train.csv", help="path to hospital.csv")
 parser.add_argument("--inference", type=bool, default=False, help="run in inference mode or not: default=False")
 args = parser.parse_args()
 
