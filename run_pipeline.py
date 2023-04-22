@@ -34,7 +34,7 @@ class Pipeline:
         if test:
             x = self.transformer.transform(self.df)
             preds = self.model.predict(x)
-            dump_dict = {'predict_probas': preds, 'threshold': 0.15}
+            dump_dict = {'predict_probas': preds, 'threshold': 0.42}
             with open('predictions.json', 'w') as f:
                 json.dump(dump_dict, f)
 
