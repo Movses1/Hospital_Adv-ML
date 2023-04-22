@@ -19,7 +19,7 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 
 class Model:
     def __init__(self):
-        self.fitted = False
+        self.__fitted = False
         stacker_m = Model.__stacker_m()
         stacker_a = Model.__stacker_a()
         estimators = [
@@ -35,7 +35,7 @@ class Model:
 
     def fit(self, x, y):
         self.model.fit(x, y)
-        self.fitted = True
+        self.__fitted = True
         print('Fitted\nsaving model...')
 
         with open('final_model.pkl', 'wb') as f:
@@ -43,7 +43,7 @@ class Model:
         print('model saved')
 
     def predict(self, x):
-        if not self.fitted:
+        if not self.__fitted:
             with open('final_model.pkl', 'rb') as f:
                 self.model = pickle.load(f)
         return self.model.predict(x)
